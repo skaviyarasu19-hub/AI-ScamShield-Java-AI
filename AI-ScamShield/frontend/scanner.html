@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Message Scanner - AI ScamShield</title>
+<link rel="stylesheet" href="css/styles.css?v=20260927-premium" />
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <div class="container">
+    <header class="scanner-heading">
+      <div>
+        <div class="scanner-kicker">MESSAGE SAFETY</div>
+        <h1 class="page-title">Message Scanner</h1>
+        <div class="page-subtitle">Check an SMS, WhatsApp, or email for common scam warning signs.</div>
+      </div>
+      <span class="scanner-status"><span class="status-dot"></span>Checks for common warning signs</span>
+    </header>
+
+    <div class="scanner-layout">
+      <div class="card">
+        <div class="scanner-card-heading">
+          <span class="scanner-icon" aria-hidden="true">✉</span>
+          <div>
+            <h2>Check a message</h2>
+            <p>Include the message text and, if helpful, sender details.</p>
+          </div>
+        </div>
+        <div class="type-tabs" role="group" aria-label="Message type">
+          <button type="button" class="type-tab active" data-type="SMS" aria-pressed="true">SMS</button>
+          <button type="button" class="type-tab" data-type="WHATSAPP" aria-pressed="false">WhatsApp</button>
+          <button type="button" class="type-tab" data-type="EMAIL" aria-pressed="false">Email</button>
+        </div>
+
+        <div id="alert-box" class="alert alert-error" role="alert"></div>
+
+        <form id="scan-form">
+          <div class="form-group">
+            <label for="sender">Sender (optional)</label>
+            <input type="text" id="sender" placeholder="e.g. +1-800-555-0199 or noreply@bank-alerts.com" />
+          </div>
+          <div class="form-group">
+            <label for="content">Message</label>
+            <textarea id="content" maxlength="10000" placeholder="Paste a suspicious SMS, WhatsApp message, email, or social media message here..." aria-describedby="content-input-hint"></textarea>
+            <span class="field-hint" id="content-input-hint">Avoid adding passwords, one-time codes, or other private information.</span>
+          </div>
+          <button type="submit" class="btn btn-primary" id="analyze-btn">Scan Message</button>
+          <div class="loading-bar" id="loading-bar" role="status" aria-label="Scanning message"><div class="fill"></div></div>
+        </form>
+      </div>
+
+      <div class="card" id="result-card" aria-live="polite">
+        <div class="result-placeholder">
+          <span class="placeholder-icon" aria-hidden="true">⌕</span>
+          <strong>Your message assessment will appear here</strong>
+          <span>Submit a message to see its risk score, indicators, and recommended next step.</span>
+        </div>
+      </div>
+    </div>
+
+    <section class="learning-section" aria-labelledby="message-signals-heading">
+      <div class="learning-heading">
+        <div>
+          <div class="scanner-kicker">BUILD YOUR SCAM AWARENESS</div>
+          <h2 id="message-signals-heading">Common pressure tactics to notice</h2>
+          <p>Scam messages often try to make careful thinking feel difficult or urgent.</p>
+        </div>
+      </div>
+      <div class="learning-grid">
+        <article class="learning-card">
+          <span class="learning-number">01</span>
+          <h3>Urgency or threats</h3>
+          <p>“Act now” or threats to close an account can be used to pressure you into skipping verification.</p>
+        </article>
+        <article class="learning-card">
+          <span class="learning-number">02</span>
+          <h3>Requests for secrets</h3>
+          <p>Never share passwords, PINs, or one-time codes with someone who contacts you unexpectedly.</p>
+        </article>
+        <article class="learning-card">
+          <span class="learning-number">03</span>
+          <h3>Unexpected money or prizes</h3>
+          <p>Be cautious of surprise winnings, guaranteed returns, job offers, or requests to pay a fee upfront.</p>
+        </article>
+      </div>
+      <aside class="safety-callout">
+        <span class="callout-icon" aria-hidden="true">✓</span>
+        <div>
+          <strong>Pause, verify, then decide</strong>
+          <p>Contact the organisation using a number or website you already trust—not the link or contact details in the message. Report and block suspicious senders when appropriate.</p>
+        </div>
+      </aside>
+      <p class="learning-disclaimer">This analysis looks for common patterns and may miss new tactics or flag unusual but legitimate messages. Treat its result as a guide, not a guarantee.</p>
+    </section>
+  </div>
+
+  <script src="js/api.js?v=20260927-file-origin"></script>
+  <script>
+    Auth.requireAuth();
+    renderNavbar("scanner.html");
+
+    let selectedType = "SMS";
+    document.querySelectorAll(".type-tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".type-tab").forEach((t) => {
+          t.classList.remove("active");
+          t.setAttribute("aria-pressed", "false");
+        });
+        tab.classList.add("active");
+        tab.setAttribute("aria-pressed", "true");
+        selectedType = tab.dataset.type;
+      });
+    });
+
+    let currentScanId = null;
+
+    document.getElementById("scan-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideAlert("alert-box");
+      const btn = document.getElementById("analyze-btn");
+      const loadingBar = document.getElementById("loading-bar");
+      const content = document.getElementById("content").value.trim();
+      if (!content) {
+        showAlert("alert-box", "Please paste a message before scanning.");
+        document.getElementById("content").focus();
+        return;
+      }
+      btn.disabled = true;
+      loadingBar.style.display = "block";
+      btn.textContent = "Scanning...";
+
+      try {
+        const result = await apiRequest("/scans/message", {
+          method: "POST",
+          body: {
+            content,
+            senderInfo: document.getElementById("sender").value || null,
+            messageType: selectedType,
+          },
+        });
+        currentScanId = result.id;
+        renderResult(result);
+      } catch (err) {
+        showAlert("alert-box", friendlyErrorMessage(err, "Something went wrong while analyzing this message. Please try again."));
+      } finally {
+        btn.disabled = false;
+        loadingBar.style.display = "none";
+        btn.textContent = "Scan Message";
+      }
+    });
+
+    function renderResult(result) {
+      const card = document.getElementById("result-card");
+      const classification = ["SAFE", "SUSPICIOUS", "LIKELY_SCAM"].includes(result.classification)
+        ? result.classification : "SUSPICIOUS";
+      const statusIcon = { SAFE: "✓", SUSPICIOUS: "⚠", LIKELY_SCAM: "!" }[classification];
+      const highRisk = result.riskScore >= 60
+        ? `<div class="high-risk-warning" role="alert"><strong>High risk detected — ${Number(result.riskScore)}/100</strong><span>Don't click suspicious links or share OTPs, passwords, or banking information.</span></div>`
+        : "";
+      card.innerHTML = `
+        <h2 class="result-card-heading">Scan result</h2>
+        ${highRisk}
+        <div class="risk-header">
+          <div class="risk-status">
+            <span class="risk-status-icon ${classification}" aria-hidden="true">${statusIcon}</span>
+            <span class="risk-status-copy">
+              <small>Risk status</small>
+              <strong>${escapeHtml(riskLabel(classification))}</strong>
+            </span>
+          </div>
+          <span class="risk-badge ${classification}">${Number(result.riskScore)}/100 risk</span>
+        </div>
+        <div class="risk-score-bar">
+          <div class="risk-score-fill ${classification}" style="width:${Number(result.riskScore)}%;"></div>
+        </div>
+        <p class="status-explainer">${classification === "SAFE" ? "No strong warning signs were found. Stay cautious with unexpected requests." : classification === "SUSPICIOUS" ? "Some warning signs were found. Verify independently before taking action." : "Several warning signs were found. Do not follow the request or share sensitive information."}</p>
+        <div class="result-meta">
+          <span><small>Scam type</small><strong>${escapeHtml(formatScamType(result.scamType))}</strong></span>
+          <span><small>Confidence*</small><strong>${Number(result.confidenceScore)}%</strong></span>
+        </div>
+
+        <div class="section-label">Warning signs</div>
+        <ul class="indicator-list">
+          ${
+            result.indicators.length
+              ? result.indicators.map((i) => `<li>${escapeHtml(i.description)}</li>`).join("")
+              : "<li>No specific indicators detected.</li>"
+          }
+        </ul>
+
+        <div class="section-label">Why this result?</div>
+        <div class="explanation-box">${escapeHtml(result.explanation)}</div>
+
+        <div class="section-label">Recommended Action</div>
+        <div class="recommendation-box">${escapeHtml(result.recommendation)}</div>
+
+        <div class="engine-tag">Analysis engine: ${result.analysisEngine === "AI_LLM" ? "AI / LLM provider" : "Local NLP rule engine (offline)"}</div>
+
+        <div class="feedback-row">
+          <button class="btn btn-secondary" onclick="submitFeedback(true)">This was a scam</button>
+          <button class="btn btn-secondary" onclick="submitFeedback(false)">This was safe</button>
+        </div>
+        <div id="feedback-msg" class="field-hint" role="status" style="display:none;">Thanks for your feedback!</div>
+        <a class="assistant-link" href="assistant.html?scanId=${Number(result.id)}">Ask ScamShield about this analysis <span aria-hidden="true">→</span></a>
+        <p class="assistant-footnote">*Evidence confidence is based on the number and weight of detected indicators; it is not a calibrated probability.</p>
+      `;
+    }
+
+    async function submitFeedback(confirmedScam) {
+      if (!currentScanId) return;
+      try {
+        await apiRequest("/feedback", {
+          method: "POST",
+          body: { scanId: currentScanId, confirmedScam },
+        });
+        document.getElementById("feedback-msg").style.display = "block";
+      } catch (err) {
+        const feedbackMessage = document.getElementById("feedback-msg");
+        feedbackMessage.textContent = friendlyErrorMessage(err, "Couldn't save your feedback. Please try again.");
+        feedbackMessage.style.display = "block";
+      }
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str || "";
+      return div.innerHTML;
+    }
+
+    function formatScamType(type) {
+      if (type === "MALICIOUS_LINK") return "Suspicious Link";
+      return (type || "OTHER").replaceAll("_", " ").toLowerCase()
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    }
+  </script>
+</body>
+</html>

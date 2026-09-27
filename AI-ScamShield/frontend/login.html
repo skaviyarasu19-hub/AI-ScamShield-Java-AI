@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Login - AI ScamShield</title>
+<link rel="stylesheet" href="css/styles.css?v=20260927-premium" />
+</head>
+<body>
+  <div class="auth-wrap">
+    <main class="auth-shell">
+    <section class="auth-brand-panel" aria-label="ScamShield overview">
+      <a class="auth-brand" href="index.html">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 36" focusable="false">
+            <path d="M16 2 28 7v9c0 8-4.8 13.5-12 18C8.8 29.5 4 24 4 16V7l12-5Z" fill="currentColor" opacity=".16"/>
+            <path d="M16 2 28 7v9c0 8-4.8 13.5-12 18C8.8 29.5 4 24 4 16V7l12-5Z" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path d="m10.5 17 3.6 3.6 7.8-8.1" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"/>
+          </svg>
+        </span>
+        <span>ScamShield</span>
+      </a>
+      <div class="auth-brand-copy">
+        <span class="scanner-kicker">PERSONAL DIGITAL SAFETY</span>
+        <h2>Pause. Check.<br />Then decide.</h2>
+        <p>Understand suspicious messages and links with clear, evidence-based guidance.</p>
+        <div class="auth-value-list">
+          <div><span aria-hidden="true">01</span><p><strong>Check before you trust</strong><small>Review messages and URLs for common warning signs.</small></p></div>
+          <div><span aria-hidden="true">02</span><p><strong>See what was found</strong><small>Get a readable risk level, score, and explanation.</small></p></div>
+          <div><span aria-hidden="true">03</span><p><strong>Know your next step</strong><small>Use practical advice to verify unexpected requests.</small></p></div>
+        </div>
+      </div>
+      <p class="auth-brand-footnote">ScamShield is a decision aid, not a guarantee. Verify important requests through a trusted channel.</p>
+    </section>
+    <div class="auth-card">
+    <div class="auth-card-heading">
+      <span class="auth-eyebrow">WELCOME BACK</span>
+      <h1>Sign in to ScamShield</h1>
+      <p class="sub">Continue to your personal safety dashboard.</p>
+    </div>
+
+    <div id="alert-box" class="alert alert-error" role="alert"></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" required autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn btn-primary" id="login-btn">Login</button>
+      </form>
+
+      <p class="auth-switch">New to ScamShield? <a href="register.html">Create an account</a></p>
+
+      <div class="demo-creds">
+        <strong>Demo sign-in details</strong>
+        <span>Admin account</span><code>admin / Admin@123</code>
+        <span>User account</span><code>testuser / Test@123</code>
+      </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js?v=20260927-file-origin"></script>
+  <script>
+    if (Auth.isLoggedIn()) window.location.href = "dashboard.html";
+
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideAlert("alert-box");
+      const btn = document.getElementById("login-btn");
+      btn.disabled = true;
+      btn.textContent = "Signing in...";
+
+      try {
+        const response = await apiRequest("/auth/login", {
+          method: "POST",
+          auth: false,
+          body: {
+            username: document.getElementById("username").value.trim(),
+            password: document.getElementById("password").value,
+          },
+        });
+        Auth.setSession(response);
+        window.location.href = "dashboard.html";
+      } catch (err) {
+        showAlert("alert-box", friendlyErrorMessage(err, "We couldn't sign you in. Please try again."));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Login";
+      }
+    });
+  </script>
+</body>
+</html>

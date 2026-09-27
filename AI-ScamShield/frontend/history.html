@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scan History - AI ScamShield</title>
+<link rel="stylesheet" href="css/styles.css?v=20260927-premium" />
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <main class="container">
+    <header class="page-intro">
+      <div class="scanner-kicker">YOUR PAST CHECKS</div>
+      <h1 class="page-title">Scan History</h1>
+      <p class="page-subtitle">Search and review the messages and links you've checked.</p>
+    </header>
+    <div id="history-alert" class="alert alert-error" role="alert"></div>
+
+    <section class="filters-row" aria-label="Filter scan history">
+      <input type="search" id="filter-search" placeholder="Search content or indicators..." aria-label="Search scans" />
+      <select id="filter-risk">
+        <option value="">All Risk Levels</option>
+        <option value="SAFE">Safe</option>
+        <option value="SUSPICIOUS">Suspicious</option>
+        <option value="LIKELY_SCAM">Dangerous</option>
+      </select>
+      <select id="filter-type" aria-label="Filter by scan type">
+        <option value="">All Scan Types</option>
+        <option value="SMS">SMS</option>
+        <option value="WHATSAPP">WhatsApp</option>
+        <option value="EMAIL">Email</option>
+        <option value="URL">URL</option>
+      </select>
+      <select id="filter-category" aria-label="Filter by scam category">
+        <option value="">All Scam Patterns</option>
+        <option value="PHISHING">Phishing</option>
+        <option value="OTP_SCAM">OTP Scam</option>
+        <option value="BANKING_SCAM">Banking Scam</option>
+        <option value="FAKE_REWARD">Fake Reward</option>
+        <option value="JOB_SCAM">Job Scam</option>
+        <option value="INVESTMENT_SCAM">Investment Scam</option>
+        <option value="IMPERSONATION">Impersonation</option>
+        <option value="MALICIOUS_LINK">Suspicious Link</option>
+        <option value="OTHER">Other / No Category</option>
+      </select>
+      <select id="filter-sort" aria-label="Sort scans">
+        <option value="DATE_DESC">Newest First</option>
+        <option value="DATE_ASC">Oldest First</option>
+        <option value="RISK_DESC">Highest Risk</option>
+        <option value="RISK_ASC">Lowest Risk</option>
+      </select>
+    </section>
+
+    <div class="card">
+      <div class="dashboard-section-heading">
+        <div class="section-label">Your scans</div>
+      </div>
+      <div class="table-wrap responsive-table">
+        <table>
+          <thead>
+            <tr><th>Scan</th><th>Content Preview</th><th>Scam pattern</th><th>Risk status</th><th>Risk score</th><th>Confidence</th><th>Date</th><th>Analysis</th><th></th></tr>
+          </thead>
+          <tbody id="history-body">
+            <tr><td colspan="9" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </main>
+    </div>
+  </div>
+
+  <script src="js/api.js?v=20260927-file-origin"></script>
+  <script>
+    Auth.requireAuth();
+    renderNavbar("history.html");
+
+    async function loadHistory() {
+      const params = new URLSearchParams();
+      const filters = [
+        ["riskLevel", "filter-risk"],
+        ["messageType", "filter-type"],
+        ["scamType", "filter-category"],
+        ["search", "filter-search"],
+      ];
+      filters.forEach(([key, id]) => {
+        const value = document.getElementById(id).value.trim();
+        if (value) params.set(key, value);
+      });
+      const [sortBy, direction] = document.getElementById("filter-sort").value.split("_");
+      params.set("sortBy", sortBy);
+      params.set("direction", direction);
+      try {
+        const scans = await apiRequest(`/scans/history?${params.toString()}`);
+        renderTable(scans);
+      } catch (err) {
+        document.getElementById("history-body").innerHTML =
+          `<tr><td colspan="9" class="empty-state">${escapeHtml(friendlyErrorMessage(err, "Couldn't load your scan history. Please try again."))}</td></tr>`;
+      }
+    }
+
+    function renderTable(scans) {
+      const tbody = document.getElementById("history-body");
+
+      if (scans.length === 0) {
+        const hasFilters = ["filter-search", "filter-risk", "filter-type", "filter-category"]
+          .some((id) => document.getElementById(id).value.trim());
+        const emptyMessage = hasFilters ? "No scans match these filters. Try changing or clearing your search." : "Your scanned messages and links will appear here.";
+        const action = hasFilters ? "" : `<a class="btn btn-primary" href="scanner.html">Start your first scan</a>`;
+        tbody.innerHTML = `<tr><td colspan="9"><div class="scan-empty-action"><strong>${hasFilters ? "No matching scans" : "No scans yet"}</strong><p>${emptyMessage}</p>${action}</div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = scans
+        .map(
+          (s) => {
+            const indicators = (s.indicators || []).map((indicator) =>
+              `<li>${escapeHtml(indicator.description)} <span class="indicator-weight">+${Number(indicator.weight)}</span></li>`
+            ).join("");
+            return `
+          <tr>
+            <td data-label="Type"><span class="scan-type-badge">${escapeHtml(s.messageType)}</span><small class="history-id">#${Number(s.id)}</small></td>
+            <td data-label="Content">${escapeHtml((s.content || "").substring(0, 50))}${s.content && s.content.length > 50 ? "..." : ""}</td>
+            <td data-label="Scam type">${escapeHtml(formatScamType(s.scamType))}</td>
+            <td data-label="Risk"><span class="pill ${escapeHtml(s.classification)}">${riskLabel(s.classification)}</span></td>
+            <td data-label="Score"><strong>${Number(s.riskScore)}</strong> / 100</td>
+            <td data-label="Confidence">${Number(s.confidenceScore)}%</td>
+            <td data-label="Date">${formatDate(s.createdAt)}</td>
+            <td data-label="Analysis"><details class="analysis-details">
+              <summary>View</summary>
+              <div class="analysis-detail-body">
+                <strong>Explainable analysis</strong>
+                <p>${escapeHtml(s.explanation)}</p>
+                <strong>Detected indicators</strong>
+                <ul class="indicator-list">${indicators || "<li>No specific indicators detected.</li>"}</ul>
+                <strong>Recommendation</strong>
+                <p>${escapeHtml(s.recommendation)}</p>
+                <span class="engine-tag">${s.analysisEngine === "AI_LLM" ? "AI provider" : "Local Java NLP"} · ${Number(s.confidenceScore)}% evidence confidence</span>
+              </div>
+            </details></td>
+            <td data-label="Action"><button class="icon-btn" title="Delete scan" aria-label="Delete scan ${Number(s.id)}" onclick="deleteScan(${Number(s.id)})">🗑️</button></td>
+          </tr>`;
+          }
+        )
+        .join("");
+    }
+
+    async function deleteScan(id) {
+      if (!confirm("Delete this scan from your history?")) return;
+      try {
+        await apiRequest(`/scans/${id}`, { method: "DELETE" });
+        hideAlert("history-alert");
+        loadHistory();
+      } catch (err) {
+        showAlert("history-alert", friendlyErrorMessage(err, "Couldn't delete this scan. Please try again."));
+      }
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str || "";
+      return div.innerHTML;
+    }
+
+    function formatScamType(type) {
+      if (type === "MALICIOUS_LINK") return "Suspicious Link";
+      return (type || "OTHER").replaceAll("_", " ").toLowerCase()
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    }
+
+    ["filter-risk", "filter-type", "filter-category", "filter-sort"].forEach((id) =>
+      document.getElementById(id).addEventListener("change", loadHistory)
+    );
+    let searchTimer;
+    document.getElementById("filter-search").addEventListener("input", () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(loadHistory, 250);
+    });
+
+    loadHistory();
+  </script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Profile - AI ScamShield</title>
+<link rel="stylesheet" href="css/styles.css?v=20260927-premium" />
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <main class="container">
+    <header class="page-intro">
+      <div class="scanner-kicker">ACCOUNT</div>
+      <h1 class="page-title">Your profile</h1>
+      <p class="page-subtitle">Account details and ScamShield access.</p>
+    </header>
+
+    <section class="profile-layout" aria-label="Profile information">
+      <div class="card">
+        <div class="profile-summary">
+          <div class="profile-avatar" id="profile-avatar" aria-hidden="true">U</div>
+          <div>
+            <h2 id="profile-name">ScamShield user</h2>
+            <p>Protected with AI ScamShield</p>
+          </div>
+        </div>
+        <a class="btn btn-primary" href="scanner.html">Scan a message</a>
+      </div>
+      <div class="card">
+        <h2 class="result-card-heading">Account information</h2>
+        <dl class="profile-details">
+          <div class="profile-detail"><dt>Username</dt><dd id="p-username">-</dd></div>
+          <div class="profile-detail"><dt>Email</dt><dd id="p-email">Not available</dd></div>
+          <div class="profile-detail"><dt>Account type</dt><dd id="p-roles">-</dd></div>
+          <div class="profile-detail"><dt>Account ID</dt><dd id="p-id">-</dd></div>
+        </dl>
+        <p class="profile-note">Your account details are read-only in this version. Use the navigation menu to visit your scan history or sign out.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/api.js?v=20260927-file-origin"></script>
+  <script>
+    Auth.requireAuth();
+    renderNavbar("profile.html");
+
+    const user = Auth.getUser() || {};
+    const username = user.username || "ScamShield user";
+    document.getElementById("p-username").textContent = username;
+    document.getElementById("profile-name").textContent = username;
+    document.getElementById("profile-avatar").textContent = username.charAt(0).toUpperCase();
+    document.getElementById("p-roles").textContent = (user.roles || ["USER"])
+      .map((role) => role.replace(/^ROLE_/, "").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase()))
+      .join(", ");
+    document.getElementById("p-id").textContent = user.userId || "-";
+  </script>
+</body>
+</html>

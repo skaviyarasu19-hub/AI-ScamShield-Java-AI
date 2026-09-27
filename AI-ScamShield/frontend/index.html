@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI ScamShield</title>
+<link rel="stylesheet" href="css/styles.css?v=20260927-premium" />
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-card" style="text-align:center;">
+      <div class="shield-logo">🛡️</div>
+      <h1>AI ScamShield</h1>
+      <p class="sub">Redirecting...</p>
+    </div>
+  </div>
+  <script src="js/api.js?v=20260927-file-origin"></script>
+  <script>
+    if (window.location.protocol !== "file:") {
+      window.location.href = Auth.isLoggedIn() ? "dashboard.html" : "login.html";
+    }
+  </script>
+</body>
+</html>

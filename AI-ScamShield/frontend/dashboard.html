@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard - AI ScamShield</title>
+<link rel="stylesheet" href="css/styles.css?v=20260927-premium" />
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <main class="container">
+    <section class="welcome-panel">
+      <div class="welcome-copy">
+        <div class="scanner-kicker">YOUR SAFETY OVERVIEW</div>
+        <h1 id="welcome-title">Welcome to ScamShield</h1>
+        <p>Protect yourself from suspicious messages and links.</p>
+      </div>
+      <div class="quick-actions">
+        <a class="btn btn-primary" href="scanner.html">Scan a Message</a>
+        <a class="btn btn-secondary" href="url-scanner.html">Scan a URL</a>
+      </div>
+    </section>
+
+    <div class="grid grid-4 dashboard-metrics">
+      <div class="card stat-card">
+        <div class="stat-heading"><div class="label">Total scans</div><span class="stat-icon" aria-hidden="true">⌕</span></div>
+        <div class="value" id="stat-total">-</div>
+      </div>
+      <div class="card stat-card threats">
+        <div class="stat-heading"><div class="label">Threats detected</div><span class="stat-icon" aria-hidden="true">!</span></div>
+        <div class="value" id="stat-threats">-</div>
+      </div>
+      <div class="card stat-card safe-stat">
+        <div class="stat-heading"><div class="label">Safe checks</div><span class="stat-icon" aria-hidden="true">✓</span></div>
+        <div class="value" id="stat-safe">-</div>
+      </div>
+      <div class="card stat-card recent">
+        <div class="stat-heading"><div class="label">Scans this week</div><span class="stat-icon" aria-hidden="true">◷</span></div>
+        <div class="value" id="stat-week">-</div>
+      </div>
+    </div>
+
+    <div class="grid grid-2 dashboard-summary-insights">
+      <div class="card dashboard-chart-card">
+        <div class="section-label">Risk Distribution</div>
+        <div class="bar-chart" id="bar-chart">
+          <div class="bar" style="background:var(--safe);height:4px;"><span id="bar-safe-label">0</span></div>
+          <div class="bar" style="background:var(--suspicious);height:4px;"><span id="bar-suspicious-label">0</span></div>
+          <div class="bar" style="background:var(--scam);height:4px;"><span id="bar-scam-label">0</span></div>
+        </div>
+        <div class="bar-labels">
+          <div>Safe</div><div>Suspicious</div><div>Dangerous</div>
+        </div>
+      </div>
+      <div class="card dashboard-chart-card">
+        <div class="section-label">Average Risk Score</div>
+        <div style="font-size:2.4rem;font-weight:700;margin:14px 0;" id="avg-risk">-</div>
+        <div class="risk-score-bar"><div class="risk-score-fill" id="avg-risk-fill" style="width:0%;background:var(--accent);"></div></div>
+        <p style="color:var(--text-secondary);font-size:.85rem;margin-top:10px;">Across all of your analyzed scans (0-100 scale).</p>
+      </div>
+    </div>
+
+    <div class="grid grid-2 dashboard-insights">
+      <section class="card dashboard-chart-card">
+        <div class="section-label">Common scam patterns</div>
+        <div id="scam-type-chart" class="insight-list">
+          <div class="empty-state">Loading threat categories...</div>
+        </div>
+      </section>
+      <section class="card dashboard-chart-card">
+        <div class="section-label">Risk Trend · Last 7 Days</div>
+        <div id="risk-trend-chart" class="trend-chart">
+          <div class="empty-state">Loading scan activity...</div>
+        </div>
+      </section>
+      <section class="card dashboard-chart-card">
+        <div class="section-label">Warning signs seen most often</div>
+        <div id="top-threats-list" class="threat-list">
+          <div class="empty-state">Loading detected indicators...</div>
+        </div>
+      </section>
+      <section class="card dashboard-chart-card">
+        <div class="section-label">High-risk scans</div>
+        <div id="high-risk-list" class="high-risk-list">
+          <div class="empty-state">Loading high-risk scans...</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="card">
+      <div class="dashboard-section-heading">
+        <div class="section-label">Recent scans</div>
+        <a class="text-link" href="history.html">View history</a>
+      </div>
+      <div class="table-wrap responsive-table">
+        <table>
+          <thead>
+            <tr><th>Type</th><th>Content Preview</th><th>Scam pattern</th><th>Risk status</th><th>Risk score</th><th>Confidence</th><th>Date</th></tr>
+          </thead>
+          <tbody id="recent-scans-body">
+            <tr>            <td colspan="7" class="empty-state">Loading scans...</td></tr>
+          </tbody>
+        </table>
+      </main>
+    </div>
+  </div>
+
+  <script src="js/api.js?v=20260927-file-origin"></script>
+  <script>
+    Auth.requireAuth();
+    renderNavbar("dashboard.html");
+
+    async function loadDashboard() {
+      try {
+        const stats = await apiRequest("/dashboard");
+        const user = Auth.getUser();
+        const username = user && user.username ? user.username : "there";
+        document.getElementById("welcome-title").textContent = `Welcome back, ${username}`;
+
+        document.getElementById("stat-total").textContent = stats.totalScans;
+        document.getElementById("stat-threats").textContent = stats.suspiciousCount + stats.likelyScamCount;
+        document.getElementById("stat-safe").textContent = stats.safeCount;
+        document.getElementById("stat-week").textContent = (stats.riskTrend || [])
+          .reduce((total, point) => total + Number(point.total || 0), 0);
+
+        document.getElementById("avg-risk").textContent = stats.averageRiskScore + " / 100";
+        document.getElementById("avg-risk-fill").style.width = stats.averageRiskScore + "%";
+
+        const max = Math.max(stats.safeCount, stats.suspiciousCount, stats.likelyScamCount, 1);
+        const bars = document.querySelectorAll("#bar-chart .bar");
+        bars[0].style.height = Math.max(4, (stats.safeCount / max) * 140) + "px";
+        bars[1].style.height = Math.max(4, (stats.suspiciousCount / max) * 140) + "px";
+        bars[2].style.height = Math.max(4, (stats.likelyScamCount / max) * 140) + "px";
+        document.getElementById("bar-safe-label").textContent = stats.safeCount;
+        document.getElementById("bar-suspicious-label").textContent = stats.suspiciousCount;
+        document.getElementById("bar-scam-label").textContent = stats.likelyScamCount;
+
+        const tbody = document.getElementById("recent-scans-body");
+        if (!stats.recentScans || stats.recentScans.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7"><div class="scan-empty-action"><strong>No scans yet</strong><p>Check a message or link to see your recent results here.</p><a class="btn btn-primary" href="scanner.html">Start your first scan</a></div></td></tr>`;
+        } else {
+          tbody.innerHTML = stats.recentScans
+            .map(
+              (s) => `
+              <tr>
+                <td data-label="Type">${escapeHtml(s.messageType)}</td>
+                <td data-label="Content">${escapeHtml((s.content || "").substring(0, 60))}${s.content && s.content.length > 60 ? "..." : ""}</td>
+                <td data-label="Scam type">${escapeHtml(formatScamType(s.scamType))}</td>
+                <td data-label="Risk"><span class="pill ${escapeHtml(s.classification)}">${riskLabel(s.classification)}</span></td>
+                <td data-label="Score">${Number(s.riskScore)}/100</td>
+                <td data-label="Confidence">${Number(s.confidenceScore)}%</td>
+                <td data-label="Date">${formatDate(s.createdAt)}</td>
+              </tr>`
+            )
+            .join("");
+        }
+        renderScamTypes(stats.scamTypeDistribution || {});
+        renderRiskTrend(stats.riskTrend || []);
+        renderThreats(stats.topDetectedThreats || []);
+        renderHighRisk(stats.highRiskScans || []);
+      } catch (err) {
+        showToastError(err.message);
+      }
+    }
+
+    function formatScamType(type) {
+      if (type === "MALICIOUS_LINK") return "Suspicious Link";
+      return (type || "OTHER").replaceAll("_", " ").toLowerCase()
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    }
+
+    function renderScamTypes(distribution) {
+      const container = document.getElementById("scam-type-chart");
+      const entries = Object.entries(distribution).filter(([type, count]) => type !== "OTHER" && count > 0)
+        .sort((a, b) => b[1] - a[1]);
+      if (!entries.length) {
+        container.innerHTML = `<div class="empty-state">No scam patterns recorded yet. Scan a message or link to build your insights.</div>`;
+        return;
+      }
+      const max = Math.max(...entries.map((entry) => entry[1]), 1);
+      container.innerHTML = entries.map(([type, count]) => `
+        <div class="insight-row">
+          <div class="insight-row-label"><span>${escapeHtml(formatScamType(type))}</span><strong>${count}</strong></div>
+          <div class="insight-track"><span style="width:${Math.round(count / max * 100)}%"></span></div>
+        </div>`).join("");
+    }
+
+    function renderRiskTrend(points) {
+      const container = document.getElementById("risk-trend-chart");
+      if (!points.length || points.every((point) => !point.total)) {
+        container.innerHTML = `<div class="empty-state">No scans recorded in the last 7 days.</div>`;
+        return;
+      }
+      const max = Math.max(...points.map((point) => point.total), 1);
+      container.innerHTML = points.map((point) => `
+        <div class="trend-day">
+          <div class="trend-bar-stack" title="${point.total} scan(s)">
+            <span class="trend-segment safe" style="height:${point.safe / max * 100}%"></span>
+            <span class="trend-segment suspicious" style="height:${point.suspicious / max * 100}%"></span>
+            <span class="trend-segment scam" style="height:${point.likelyScam / max * 100}%"></span>
+          </div>
+          <span class="trend-day-label">${new Date(point.date + "T00:00:00").toLocaleDateString(undefined,{weekday:"short"})}</span>
+          <span class="trend-day-count">${point.total}</span>
+        </div>`).join("");
+    }
+
+    function renderThreats(threats) {
+      const container = document.getElementById("top-threats-list");
+      if (!threats.length) {
+        container.innerHTML = `<div class="empty-state">No detected threat indicators yet.</div>`;
+        return;
+      }
+      container.innerHTML = threats.map((threat) => `
+        <div class="threat-row">
+          <span><strong>${escapeHtml(threat.description)}</strong><small>${escapeHtml(threat.code.replaceAll("_", " "))}</small></span>
+          <span class="threat-count">${threat.count}</span>
+        </div>`).join("");
+    }
+
+    function renderHighRisk(scans) {
+      const container = document.getElementById("high-risk-list");
+      if (!scans.length) {
+        container.innerHTML = `<div class="empty-state">No high-risk scans yet. This is not a guarantee that content is safe.</div>`;
+        return;
+      }
+      container.innerHTML = scans.map((scan) => `
+        <a class="high-risk-item" href="history.html">
+          <span class="high-risk-score">${Number(scan.riskScore)}</span>
+          <span><strong>${escapeHtml(formatScamType(scan.scamType))} · ${escapeHtml(scan.messageType)}</strong>
+          <small>${escapeHtml((scan.content || "").slice(0, 70))}</small></span>
+        </a>`).join("");
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function showToastError(msg) {
+      const tbody = document.getElementById("recent-scans-body");
+      tbody.innerHTML = `<tr><td colspan="7" class="empty-state">${escapeHtml(friendlyErrorMessage({ message: msg, status: 500 }, "Couldn't load your dashboard right now. Please try again."))}</td></tr>`;
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>

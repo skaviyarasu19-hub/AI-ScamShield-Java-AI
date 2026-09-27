@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scam Assistant - AI ScamShield</title>
+<link rel="stylesheet" href="css/styles.css?v=20260927-premium" />
+</head>
+<body>
+  <div id="navbar-mount"></div>
+
+  <main class="container">
+    <header class="scanner-heading page-intro">
+      <div>
+        <div class="scanner-kicker">EVIDENCE-BASED GUIDANCE</div>
+        <h1 class="page-title">Ask ScamShield</h1>
+        <p class="page-subtitle">Get clear guidance based on the warning signs found in a message or link.</p>
+      </div>
+      <span class="scanner-status"><span class="status-dot"></span>Answers use detected evidence</span>
+    </header>
+
+    <div class="assistant-layout">
+      <section class="card assistant-form-card" aria-labelledby="assistant-input-heading">
+        <div class="scanner-card-heading">
+          <span class="scanner-icon" aria-hidden="true">✦</span>
+          <div>
+            <h2 id="assistant-input-heading">Ask about something suspicious</h2>
+            <p>Share the content you want help checking.</p>
+          </div>
+        </div>
+        <div id="assistant-alert" class="alert alert-error" role="alert"></div>
+        <form id="assistant-form">
+          <div class="form-group">
+            <label for="assistant-type">Content type</label>
+            <select id="assistant-type">
+              <option value="SMS">SMS</option>
+              <option value="WHATSAPP">WhatsApp</option>
+              <option value="EMAIL">Email</option>
+              <option value="URL">URL</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="assistant-content">Message or website link</label>
+            <textarea id="assistant-content" maxlength="10000"
+              placeholder="Paste a suspicious message, email, or website link here..."></textarea>
+            <span class="field-hint">Don't include passwords, payment details, or one-time codes.</span>
+          </div>
+          <div class="form-group">
+            <label for="assistant-question">What would you like to know?</label>
+            <input id="assistant-question" type="text" maxlength="500"
+              value="Is this safe? What should I do?" required />
+          </div>
+          <button class="btn btn-primary" id="assistant-submit" type="submit">Scan and get guidance</button>
+          <div class="loading-bar" id="assistant-loading" role="status" aria-label="Analyzing content"><div class="fill"></div></div>
+        </form>
+        <p class="scanner-privacy-note"><span aria-hidden="true">ⓘ</span>
+          This assistant bases its response on ScamShield's analysis. It does not browse the web or verify a sender's identity.</p>
+      </section>
+
+      <section class="card assistant-response-card" aria-labelledby="assistant-response-heading" aria-live="polite">
+        <div class="assistant-chat-header">
+          <span class="scanner-icon" aria-hidden="true">✦</span>
+          <div>
+            <h2 id="assistant-response-heading">ScamShield analysis</h2>
+            <p>Analysis-backed answer, not a guarantee.</p>
+          </div>
+        </div>
+        <div id="assistant-response" class="assistant-empty">
+          <span class="placeholder-icon" aria-hidden="true">✧</span>
+          <strong>Your answer will appear here</strong>
+          <span>Ask whether a message is safe, why it looks suspicious, or what to do next.</span>
+        </div>
+      </section>
+    </div>
+    <p class="learning-disclaimer">ScamShield uses configurable, deterministic local NLP rules by default. When configured, it can use an external AI provider with a local fallback. Neither result establishes that content is definitely safe or malicious.</p>
+  </main>
+
+  <script src="js/api.js?v=20260927-file-origin"></script>
+  <script>
+    Auth.requireAuth();
+    renderNavbar("assistant.html");
+
+    const form = document.getElementById("assistant-form");
+    const typeSelect = document.getElementById("assistant-type");
+    const contentField = document.getElementById("assistant-content");
+    const questionField = document.getElementById("assistant-question");
+    const submitButton = document.getElementById("assistant-submit");
+    const linkedScanId = new URLSearchParams(window.location.search).get("scanId");
+
+    if (linkedScanId && /^\d+$/.test(linkedScanId)) {
+      apiRequest(`/scans/${linkedScanId}`).then((scan) => {
+        contentField.value = scan.content || "";
+        typeSelect.value = scan.messageType;
+        typeSelect.disabled = true;
+        contentField.readOnly = true;
+        const note = document.createElement("span");
+        note.className = "field-hint";
+        note.textContent = `Using saved scan #${scan.id}; this answer is based on that exact analysis.`;
+        contentField.parentElement.appendChild(note);
+      }).catch((error) => showAlert("assistant-alert", friendlyErrorMessage(error, "Couldn't load that saved scan. Please try again.")));
+    }
+
+    typeSelect.addEventListener("change", () => {
+      contentField.placeholder = typeSelect.value === "URL"
+        ? "Paste the URL here without opening it..."
+        : "Paste a suspicious message here...";
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      hideAlert("assistant-alert");
+      if (!contentField.value.trim()) {
+        showAlert("assistant-alert", "Please paste a message or link before scanning.");
+        contentField.focus();
+        return;
+      }
+      const loading = document.getElementById("assistant-loading");
+      submitButton.disabled = true;
+      submitButton.textContent = "Scanning...";
+      loading.style.display = "block";
+
+      try {
+        const answer = await apiRequest("/assistant/analyze", {
+          method: "POST",
+          body: {
+            ...(linkedScanId && /^\d+$/.test(linkedScanId)
+              ? { scanId: Number(linkedScanId) }
+              : { content: contentField.value.trim(), messageType: typeSelect.value }),
+            question: questionField.value.trim(),
+          },
+        });
+        renderAnswer(answer);
+      } catch (error) {
+        showAlert("assistant-alert", friendlyErrorMessage(error, "Something went wrong while analyzing this content. Please try again."));
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Scan and get guidance";
+        loading.style.display = "none";
+      }
+    });
+
+    function renderAnswer(answer) {
+      const response = document.getElementById("assistant-response");
+      const risks = Array.isArray(answer.detectedRisks) ? answer.detectedRisks : [];
+      const riskItems = risks.length
+        ? risks.map((risk) => `<li>${escapeHtml(risk)}</li>`).join("")
+        : "<li>No specific indicators were detected.</li>";
+      const classification = ["SAFE", "SUSPICIOUS", "LIKELY_SCAM"].includes(answer.classification)
+        ? answer.classification : "SUSPICIOUS";
+      const statusIcon = { SAFE: "✓", SUSPICIOUS: "⚠", LIKELY_SCAM: "!" }[classification];
+      const warning = answer.riskScore >= 60
+        ? `<div class="high-risk-warning" role="alert"><strong>High risk detected</strong><span>Don't click links or share verification codes, passwords, or financial details.</span></div>`
+        : "";
+      const scamType = answer.scamType === "MALICIOUS_LINK"
+        ? "Suspicious Link"
+        : (answer.scamType || "OTHER").replaceAll("_", " ").toLowerCase()
+          .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+      response.className = "assistant-answer";
+      response.innerHTML = `
+        ${warning}
+        <div class="assistant-question-bubble">${escapeHtml(questionField.value.trim())}</div>
+        <div class="assistant-answer-bubble">
+          <div class="assistant-answer-kicker">SCAMSHIELD ASSESSMENT</div>
+          <div class="risk-status">
+            <span class="risk-status-icon ${classification}" aria-hidden="true">${statusIcon}</span>
+            <span class="risk-status-copy">
+              <small>Risk status</small>
+              <strong>${escapeHtml(riskLabel(classification))}</strong>
+            </span>
+          </div>
+          <div class="assistant-score-row">
+            <span><strong>Risk score</strong> ${Number(answer.riskScore)}/100</span>
+            <span>${escapeHtml(scamType)}</span>
+            <span><strong>Confidence</strong> ${Number(answer.confidenceScore)}%</span>
+          </div>
+          <p class="assistant-short-answer">${escapeHtml(answer.shortAnswer)}</p>
+          <div class="section-label">What should I do?</div>
+          <div class="recommendation-box">${escapeHtml(answer.recommendation)}</div>
+          <details class="assistant-disclosure">
+            <summary>Why this assessment?</summary>
+            <div class="explanation-box">${escapeHtml(answer.explanation)}</div>
+          </details>
+          <details class="assistant-disclosure">
+            <summary>Detected risks (${risks.length})</summary>
+            <ul class="indicator-list">${riskItems}</ul>
+          </details>
+          <p class="assistant-footnote">*Evidence confidence reflects the number and weight of detected indicators; it is not a calibrated probability.</p>
+        </div>`;
+    }
+
+    function escapeHtml(value) {
+      const element = document.createElement("div");
+      element.textContent = value == null ? "" : String(value);
+      return element.innerHTML;
+    }
+  </script>
+</body>
+</html>

@@ -140,24 +140,27 @@ are created/updated automatically. Set `DB_URL`, `DB_USERNAME`,
 mysql -u root -p < database/DATABASE_SETUP.sql
 ```
 
-Default seeded accounts (created automatically by `DataSeeder` on first
-backend startup):
-| Username | Password  | Role         |
-|----------|-----------|--------------|
-| admin    | Admin@123 | ADMIN + USER |
-| testuser | Test@123  | USER         |
+No accounts or passwords are seeded by default. Register a user through the
+application. To provision an administrator on first startup, set
+`SEED_ADMIN_USERNAME`, `SEED_ADMIN_EMAIL`, and `SEED_ADMIN_PASSWORD` in the
+backend environment before starting the application. Set a unique
+`JWT_SECRET` of at least 32 random characters; the backend intentionally has
+no built-in signing secret.
 
 ---
 
 ## 7. MySQL Configuration
 
-Set these via environment variables, an IDE run configuration, or a local
-`.env` file loaded by your shell (`backend/.env.example` has the full list):
+Copy `backend/.env.example` to `backend/.env` and replace the placeholder JWT
+secret with a unique random value of at least 32 characters. Spring Boot
+imports this file automatically. Configure optional administrator values only
+when needed:
 
 ```
 DB_NAME=scamshield_db
 DB_USERNAME=root
 DB_PASSWORD=your_mysql_password
+JWT_SECRET=your_unique_random_secret_of_at_least_32_characters
 ```
 
 ---
@@ -188,7 +191,7 @@ deterministic NLP rules. Optional category weight multipliers can be set with
 
 ```bash
 cd backend
-cp .env.example .env      # then edit with your DB credentials
+cp .env.example .env      # set a unique JWT_SECRET; add DB/admin settings as needed
 mvn spring-boot:run
 ```
 
@@ -248,12 +251,12 @@ PUT    /api/admin/users/{id}/status
 
 ---
 
-## 12. Test Credentials
+## 12. Account Setup
 
-| Username | Password  | Role         |
-|----------|-----------|--------------|
-| admin    | Admin@123 | ADMIN + USER |
-| testuser | Test@123  | USER         |
+Create a normal account using the registration page. If the demo needs an
+administrator, configure the optional `SEED_ADMIN_*` environment variables
+before the first backend startup. Do not use shared or production passwords
+for a classroom demonstration.
 
 ---
 

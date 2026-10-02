@@ -42,11 +42,17 @@
             <input type="text" id="sender" placeholder="e.g. +1-800-555-0199 or noreply@bank-alerts.com" />
           </div>
           <div class="form-group">
-            <label for="content">Message</label>
-            <textarea id="content" maxlength="10000" placeholder="Paste a suspicious SMS, WhatsApp message, email, or social media message here..." aria-describedby="content-input-hint"></textarea>
+            <div class="message-input-heading">
+              <label for="content">Message</label>
+              <button type="button" class="btn btn-secondary paste-button" id="paste-button">Paste from clipboard</button>
+            </div>
+            <textarea id="content" maxlength="10000" placeholder="Paste or type a suspicious SMS, WhatsApp message, email, or social media message here..." aria-describedby="content-input-hint"></textarea>
             <span class="field-hint" id="content-input-hint">Avoid adding passwords, one-time codes, or other private information.</span>
           </div>
-          <button type="submit" class="btn btn-primary" id="analyze-btn">Scan Message</button>
+          <div class="scanner-actions">
+            <button type="submit" class="btn btn-primary" id="analyze-btn">Scan Message</button>
+            <button type="button" class="btn btn-secondary" id="clear-btn">Clear</button>
+          </div>
           <div class="loading-bar" id="loading-bar" role="status" aria-label="Scanning message"><div class="fill"></div></div>
         </form>
       </div>
@@ -115,19 +121,61 @@
     });
 
     let currentScanId = null;
+    const clearButton = document.getElementById("clear-btn");
+    const contentField = document.getElementById("content");
+
+    document.getElementById("paste-button").addEventListener("click", async () => {
+      if (!navigator.clipboard || !navigator.clipboard.readText) {
+        showAlert("alert-box", "Clipboard access is unavailable in this browser. Click the message box and paste with Ctrl+V (or Command+V).");
+        return;
+      }
+
+      try {
+        const clipboardText = await navigator.clipboard.readText();
+        if (!clipboardText) {
+          showAlert("alert-box", "Your clipboard is empty. Copy a message first, then try pasting again.");
+          return;
+        }
+
+        const start = contentField.selectionStart;
+        const end = contentField.selectionEnd;
+        const availableLength = contentField.maxLength - (contentField.value.length - (end - start));
+        contentField.setRangeText(clipboardText.slice(0, availableLength), start, end, "end");
+        contentField.focus();
+        hideAlert("alert-box");
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        showAlert("alert-box", `Couldn't read the clipboard (${detail}). Allow clipboard access, or click the message box and paste with Ctrl+V (or Command+V).`);
+      }
+    });
+
+    clearButton.addEventListener("click", () => {
+      contentField.value = "";
+      document.getElementById("sender").value = "";
+      currentScanId = null;
+      hideAlert("alert-box");
+      document.getElementById("result-card").innerHTML = `
+        <div class="result-placeholder">
+          <span class="placeholder-icon" aria-hidden="true">⌕</span>
+          <strong>Your message assessment will appear here</strong>
+          <span>Submit a message to see its risk score, indicators, and recommended next step.</span>
+        </div>`;
+      contentField.focus();
+    });
 
     document.getElementById("scan-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       hideAlert("alert-box");
       const btn = document.getElementById("analyze-btn");
       const loadingBar = document.getElementById("loading-bar");
-      const content = document.getElementById("content").value.trim();
+      const content = contentField.value.trim();
       if (!content) {
-        showAlert("alert-box", "Please paste a message before scanning.");
-        document.getElementById("content").focus();
+        showAlert("alert-box", "Please paste or type a message before scanning.");
+        contentField.focus();
         return;
       }
       btn.disabled = true;
+      clearButton.disabled = true;
       loadingBar.style.display = "block";
       btn.textContent = "Scanning...";
 
@@ -146,6 +194,7 @@
         showAlert("alert-box", friendlyErrorMessage(err, "Something went wrong while analyzing this message. Please try again."));
       } finally {
         btn.disabled = false;
+        clearButton.disabled = false;
         loadingBar.style.display = "none";
         btn.textContent = "Scan Message";
       }
@@ -155,6 +204,8 @@
       const card = document.getElementById("result-card");
       const classification = ["SAFE", "SUSPICIOUS", "LIKELY_SCAM"].includes(result.classification)
         ? result.classification : "SUSPICIOUS";
+      const resultLabel = classification === "SAFE" ? "SAFE" : "SCAM";
+      const riskLevel = { SAFE: "Low", SUSPICIOUS: "Medium", LIKELY_SCAM: "High" }[classification];
       const statusIcon = { SAFE: "✓", SUSPICIOUS: "⚠", LIKELY_SCAM: "!" }[classification];
       const highRisk = result.riskScore >= 60
         ? `<div class="high-risk-warning" role="alert"><strong>High risk detected — ${Number(result.riskScore)}/100</strong><span>Don't click suspicious links or share OTPs, passwords, or banking information.</span></div>`
@@ -166,16 +217,16 @@
           <div class="risk-status">
             <span class="risk-status-icon ${classification}" aria-hidden="true">${statusIcon}</span>
             <span class="risk-status-copy">
-              <small>Risk status</small>
-              <strong>${escapeHtml(riskLabel(classification))}</strong>
+              <small>Detection result</small>
+              <strong>${resultLabel}</strong>
             </span>
           </div>
-          <span class="risk-badge ${classification}">${Number(result.riskScore)}/100 risk</span>
+          <span class="risk-badge ${classification}">${riskLevel} risk · ${Number(result.riskScore)}/100</span>
         </div>
         <div class="risk-score-bar">
           <div class="risk-score-fill ${classification}" style="width:${Number(result.riskScore)}%;"></div>
         </div>
-        <p class="status-explainer">${classification === "SAFE" ? "No strong warning signs were found. Stay cautious with unexpected requests." : classification === "SUSPICIOUS" ? "Some warning signs were found. Verify independently before taking action." : "Several warning signs were found. Do not follow the request or share sensitive information."}</p>
+        <p class="status-explainer">${classification === "SAFE" ? "No strong warning signs were found. Stay cautious with unexpected requests." : classification === "SUSPICIOUS" ? "Possible scam patterns were found. Verify independently before taking action." : "Several warning signs were found. Do not follow the request or share sensitive information."}</p>
         <div class="result-meta">
           <span><small>Scam type</small><strong>${escapeHtml(formatScamType(result.scamType))}</strong></span>
           <span><small>Confidence*</small><strong>${Number(result.confidenceScore)}%</strong></span>

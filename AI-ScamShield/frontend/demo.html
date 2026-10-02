@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sample Demo - AI ScamShield</title>
+<link rel="stylesheet" href="css/styles.css?v=20260927-premium" />
+<link rel="stylesheet" href="css/demo.css" />
+</head>
+<body>
+  <header class="demo-topbar">
+    <a class="brand" href="index.html" aria-label="ScamShield home">
+      <span class="brand-mark" aria-hidden="true">🛡</span>
+      <span>ScamShield</span>
+    </a>
+    <a class="btn btn-secondary demo-signin" href="login.html">Sign in</a>
+  </header>
+
+  <main class="container demo-container">
+    <div class="demo-notice" role="note">
+      <strong>Sample project demo</strong>
+      <span>All information and scan outcomes on this page are fictional illustrations, not real user data or live AI results.</span>
+    </div>
+
+    <header class="page-intro demo-intro">
+      <div class="scanner-kicker">SCAMSHIELD OVERVIEW</div>
+      <h1 class="page-title">A safer way to check suspicious messages</h1>
+      <p class="page-subtitle">Explore an example account and sample assessments to see how ScamShield presents clear, practical safety guidance.</p>
+    </header>
+
+    <section class="profile-layout demo-profile" aria-label="Fictional sample profile">
+      <div class="card">
+        <div class="profile-summary">
+          <div class="profile-avatar" aria-hidden="true">M</div>
+          <div>
+            <h2>Maya Patel</h2>
+            <p>Fictional sample account</p>
+          </div>
+        </div>
+        <a class="btn btn-primary demo-profile-action" href="register.html">Create your own account</a>
+      </div>
+      <div class="card">
+        <h2 class="result-card-heading">Example account information</h2>
+        <dl class="profile-details">
+          <div class="profile-detail"><dt>Username</dt><dd>maya_demo</dd></div>
+          <div class="profile-detail"><dt>Email</dt><dd>maya.patel@example.com</dd></div>
+          <div class="profile-detail"><dt>Account type</dt><dd>User</dd></div>
+          <div class="profile-detail"><dt>Account ID</dt><dd>DEMO-2048</dd></div>
+          <div class="profile-detail"><dt>Scans completed</dt><dd>12 (sample)</dd></div>
+          <div class="profile-detail"><dt>Member since</dt><dd>June 12, 2025 (sample)</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="demo-stats" aria-label="Illustrative account scan statistics">
+      <article class="card stat-card">
+        <div class="label">Total scans</div>
+        <div class="value">12</div>
+        <span class="demo-stat-note">Sample account</span>
+      </article>
+      <article class="card stat-card scam">
+        <div class="label">Scams flagged</div>
+        <div class="value">5</div>
+        <span class="demo-stat-note">Illustrative only</span>
+      </article>
+      <article class="card stat-card suspicious">
+        <div class="label">Need a closer look</div>
+        <div class="value">2</div>
+        <span class="demo-stat-note">Illustrative only</span>
+      </article>
+      <article class="card stat-card safe">
+        <div class="label">Safe examples</div>
+        <div class="value">5</div>
+        <span class="demo-stat-note">Illustrative only</span>
+      </article>
+    </section>
+
+    <section class="demo-examples" aria-labelledby="demo-examples-heading">
+      <div class="demo-section-heading">
+        <div>
+          <div class="scanner-kicker">EXAMPLE RESULTS</div>
+          <h2 id="demo-examples-heading">What a message check can highlight</h2>
+        </div>
+        <span class="demo-disclaimer">Illustrative outcomes · not produced by a live scan</span>
+      </div>
+
+      <div class="demo-result-grid">
+        <article class="card demo-result demo-scam">
+          <div class="demo-result-top"><span class="demo-type">SMS · Prize offer</span><span class="pill LIKELY_SCAM">Likely scam</span></div>
+          <blockquote>“Congratulations! You have won a gift card. Pay a small processing fee to claim your prize.”</blockquote>
+          <dl class="demo-result-details">
+            <div><dt>Example risk score</dt><dd>94 / 100</dd></div>
+            <div><dt>Warning signs</dt><dd>Unexpected prize · Upfront fee · Urgency</dd></div>
+            <div><dt>Safer next step</dt><dd>Do not pay to claim an unexpected prize. Verify through the organisation’s official website.</dd></div>
+          </dl>
+        </article>
+
+        <article class="card demo-result demo-scam">
+          <div class="demo-result-top"><span class="demo-type">Email · Account alert</span><span class="pill LIKELY_SCAM">Likely scam</span></div>
+          <blockquote>“Your account needs verification. Visit example.com/verify to continue.”</blockquote>
+          <dl class="demo-result-details">
+            <div><dt>Example risk score</dt><dd>88 / 100</dd></div>
+            <div><dt>Warning signs</dt><dd>Unexpected verification · Link in message</dd></div>
+            <div><dt>Safer next step</dt><dd>Open the service using its known official app or website instead of following the message link.</dd></div>
+          </dl>
+        </article>
+
+        <article class="card demo-result demo-suspicious">
+          <div class="demo-result-top"><span class="demo-type">SMS · Delivery notice</span><span class="pill SUSPICIOUS">Suspicious</span></div>
+          <blockquote>“Your delivery is on hold. Pay an extra fee immediately to release your package.”</blockquote>
+          <dl class="demo-result-details">
+            <div><dt>Example risk score</dt><dd>58 / 100</dd></div>
+            <div><dt>Warning signs</dt><dd>Unexpected fee · Pressure to act</dd></div>
+            <div><dt>Safer next step</dt><dd>Check delivery status using the carrier’s official app or tracking page.</dd></div>
+          </dl>
+        </article>
+
+        <article class="card demo-result demo-safe">
+          <div class="demo-result-top"><span class="demo-type">WhatsApp · Study group</span><span class="pill SAFE">Safe example</span></div>
+          <blockquote>“Hi Maya, our study group is meeting at the library at 3 PM. See you there!”</blockquote>
+          <dl class="demo-result-details">
+            <div><dt>Example risk score</dt><dd>4 / 100</dd></div>
+            <div><dt>Observed pattern</dt><dd>Ordinary plans · No urgent payment request</dd></div>
+            <div><dt>Safer next step</dt><dd>Use your judgement and verify the sender if the message seems unexpected.</dd></div>
+          </dl>
+        </article>
+
+        <article class="card demo-result demo-safe">
+          <div class="demo-result-top"><span class="demo-type">Email · Appointment reminder</span><span class="pill SAFE">Safe example</span></div>
+          <blockquote>“Reminder: your appointment is tomorrow at 10 AM. Please arrive a few minutes early.”</blockquote>
+          <dl class="demo-result-details">
+            <div><dt>Example risk score</dt><dd>7 / 100</dd></div>
+            <div><dt>Observed pattern</dt><dd>Routine reminder · No request for sensitive details</dd></div>
+            <div><dt>Safer next step</dt><dd>If you are unsure, confirm the appointment with the provider using a trusted contact method.</dd></div>
+          </dl>
+        </article>
+      </div>
+    </section>
+
+    <p class="demo-footer-note">ScamShield is a decision aid, not a guarantee. A real scan may produce a different result; verify important requests through a trusted channel.</p>
+  </main>
+</body>
+</html>

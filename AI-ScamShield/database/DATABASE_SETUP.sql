@@ -99,22 +99,9 @@ CREATE TABLE IF NOT EXISTS feedback (
 );
 
 -- ---------------------------------------------------------------------
--- Default seed accounts
+-- Optional administrator provisioning
 -- ---------------------------------------------------------------------
--- NOTE: The Spring Boot application seeds these automatically on first run
--- (see config/DataSeeder.java) with BCrypt-hashed passwords. The inserts
--- below are commented out because inserting a valid BCrypt hash requires
--- the running application; they are left here only as a reference of what
--- DataSeeder creates:
+-- No accounts are seeded by default. Set SEED_ADMIN_USERNAME,
+-- SEED_ADMIN_EMAIL, and SEED_ADMIN_PASSWORD before first startup to create an
+-- administrator with a BCrypt-hashed password through the Java application.
 --
---   admin    / Admin@123   (ROLE_ADMIN, ROLE_USER)
---   testuser / Test@123    (ROLE_USER)
---
--- If you need to create them manually via SQL, generate a BCrypt hash first
--- (e.g. via an online bcrypt generator or a small Java snippet using
--- Spring Security's BCryptPasswordEncoder) and substitute it below:
---
--- INSERT INTO users (username, email, password, enabled, created_at)
--- VALUES ('admin', 'admin@scamshield.local', '<bcrypt-hash-here>', TRUE, NOW());
--- INSERT INTO user_roles (user_id, role_id)
--- SELECT u.id, r.id FROM users u, roles r WHERE u.username='admin' AND r.name IN ('ROLE_ADMIN','ROLE_USER');

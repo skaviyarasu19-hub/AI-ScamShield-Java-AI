@@ -48,13 +48,25 @@ Content-Type: application/json
 
 **Response 200:** same shape as register.
 
-Seeded demo accounts (created automatically on first backend startup):
-- `admin` / `Admin@123` (ROLE_ADMIN + ROLE_USER)
-- `testuser` / `Test@123` (ROLE_USER)
+There are no default demo accounts. Register one through `/api/auth/register`.
+For an administrator account, configure `SEED_ADMIN_USERNAME`,
+`SEED_ADMIN_EMAIL`, and `SEED_ADMIN_PASSWORD` before the first backend startup.
 
 ---
 
-## 3. Analyze a Message
+## 3. View the current user's profile
+
+```
+GET /api/profile
+Authorization: Bearer <token>
+```
+
+The response includes the authenticated user's public account details and scan
+count. Password data is never returned.
+
+---
+
+## 4. Analyze a Message
 
 ```
 POST /api/scans/message

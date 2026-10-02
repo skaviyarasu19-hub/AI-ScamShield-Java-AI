@@ -6,6 +6,7 @@ import com.scamshield.entity.User;
 import com.scamshield.repository.RoleRepository;
 import com.scamshield.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -14,8 +15,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Seeds default roles and a default admin/test user on first startup so the
- * project can be evaluated immediately without manual SQL inserts.
+ * Seeds roles on startup and creates an admin only when credentials are supplied
+ * through environment-backed configuration.
  */
 @Component
 @RequiredArgsConstructor
@@ -25,6 +26,15 @@ public class DataSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${app.seed.admin.username:}")
+    private String adminUsername;
+
+    @Value("${app.seed.admin.email:}")
+    private String adminEmail;
+
+    @Value("${app.seed.admin.password:}")
+    private String adminPassword;
+
     @Override
     public void run(String... args) {
         Role userRole = roleRepository.findByName(RoleName.ROLE_USER)
@@ -33,33 +43,30 @@ public class DataSeeder implements CommandLineRunner {
         Role adminRole = roleRepository.findByName(RoleName.ROLE_ADMIN)
                 .orElseGet(() -> roleRepository.save(Role.builder().name(RoleName.ROLE_ADMIN).build()));
 
-        if (!userRepository.existsByUsername("admin")) {
+        boolean adminConfigured = hasText(adminUsername) && hasText(adminEmail) && hasText(adminPassword);
+        boolean anyAdminSettingConfigured = hasText(adminUsername) || hasText(adminEmail) || hasText(adminPassword);
+        if (anyAdminSettingConfigured && !adminConfigured) {
+            throw new IllegalStateException("Configure all SEED_ADMIN_USERNAME, SEED_ADMIN_EMAIL, and SEED_ADMIN_PASSWORD values");
+        }
+
+        if (adminConfigured && !userRepository.existsByUsername(adminUsername)
+                && !userRepository.existsByEmail(adminEmail)) {
             Set<Role> roles = new HashSet<>();
             roles.add(adminRole);
             roles.add(userRole);
 
             User admin = User.builder()
-                    .username("admin")
-                    .email("admin@scamshield.local")
-                    .password(passwordEncoder.encode("Admin@123"))
+                    .username(adminUsername)
+                    .email(adminEmail)
+                    .password(passwordEncoder.encode(adminPassword))
                     .enabled(true)
                     .roles(roles)
                     .build();
             userRepository.save(admin);
         }
+    }
 
-        if (!userRepository.existsByUsername("testuser")) {
-            Set<Role> roles = new HashSet<>();
-            roles.add(userRole);
-
-            User testUser = User.builder()
-                    .username("testuser")
-                    .email("testuser@scamshield.local")
-                    .password(passwordEncoder.encode("Test@123"))
-                    .enabled(true)
-                    .roles(roles)
-                    .build();
-            userRepository.save(testUser);
-        }
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

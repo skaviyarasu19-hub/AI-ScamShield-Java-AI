@@ -34,6 +34,8 @@
           <div class="profile-detail"><dt>Email</dt><dd id="p-email">Not available</dd></div>
           <div class="profile-detail"><dt>Account type</dt><dd id="p-roles">-</dd></div>
           <div class="profile-detail"><dt>Account ID</dt><dd id="p-id">-</dd></div>
+          <div class="profile-detail"><dt>Scans completed</dt><dd id="p-scans">-</dd></div>
+          <div class="profile-detail"><dt>Member since</dt><dd id="p-created">-</dd></div>
         </dl>
         <p class="profile-note">Your account details are read-only in this version. Use the navigation menu to visit your scan history or sign out.</p>
       </div>
@@ -45,15 +47,21 @@
     Auth.requireAuth();
     renderNavbar("profile.html");
 
-    const user = Auth.getUser() || {};
-    const username = user.username || "ScamShield user";
-    document.getElementById("p-username").textContent = username;
-    document.getElementById("profile-name").textContent = username;
-    document.getElementById("profile-avatar").textContent = username.charAt(0).toUpperCase();
-    document.getElementById("p-roles").textContent = (user.roles || ["USER"])
-      .map((role) => role.replace(/^ROLE_/, "").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase()))
-      .join(", ");
-    document.getElementById("p-id").textContent = user.userId || "-";
+    apiRequest("/profile").then((profile) => {
+      const username = profile.username || "ScamShield user";
+      document.getElementById("p-username").textContent = username;
+      document.getElementById("profile-name").textContent = username;
+      document.getElementById("profile-avatar").textContent = username.charAt(0).toUpperCase();
+      document.getElementById("p-email").textContent = profile.email || "Not available";
+      document.getElementById("p-roles").textContent = (profile.roles || [])
+        .map((role) => role.replace(/^ROLE_/, "").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase()))
+        .join(", ") || "User";
+      document.getElementById("p-id").textContent = profile.id || "-";
+      document.getElementById("p-scans").textContent = profile.totalScans ?? 0;
+      document.getElementById("p-created").textContent = profile.createdAt ? formatDate(profile.createdAt) : "-";
+    }).catch((error) => {
+      document.getElementById("p-email").textContent = friendlyErrorMessage(error, "Account details could not be loaded.");
+    });
   </script>
 </body>
 </html>
